@@ -35,14 +35,9 @@ export default function ScoreBoard() {
       const allChallenges = await db.getAll('challenges')
       setChallenges(allChallenges)
       
-      // Get current user ID from localStorage or default to 1
-      const currentUserStr = localStorage.getItem('currentUser')
-      const currentUser = currentUserStr ? JSON.parse(currentUserStr) : null
-      const userId = currentUser ? currentUser.id : 1
-      
-      // Get current user's completed challenges
-      const completed = await getCompletedChallenges(userId)
-      setCompletedKeys(completed.map(c => c.challengeId))
+      // Get completed challenges (global, not per user)
+      const completed = await getCompletedChallenges()
+      setCompletedKeys(completed)
     } catch (error) {
       console.error('Error loading challenges:', error)
     } finally {

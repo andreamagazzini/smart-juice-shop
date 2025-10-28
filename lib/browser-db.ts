@@ -23,6 +23,7 @@ interface JuiceShopDBSchema extends DBSchema {
       price: number
       image?: string
       deletedAt?: string
+      vipOnly?: boolean
     }
   }
   baskets: {
@@ -331,7 +332,9 @@ export async function resetDatabase() {
   // Clear completed challenges
   const completedChallenges = await db.getAll('completedChallenges')
   for (const challenge of completedChallenges) {
-    await db.delete('completedChallenges', challenge.id)
+    // Use composite key: "userId-challengeId"
+    const key = `${challenge.userId}-${challenge.challengeId}`
+    await db.delete('completedChallenges', key)
   }
   
   // Clear baskets
