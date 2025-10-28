@@ -40,4 +40,10 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# history files (from code editor extensions)
+.history/
+
+# prisma
 /app/generated/prisma
+/prisma/dev.db
+/prisma/generated/

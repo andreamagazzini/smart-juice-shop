@@ -1,10 +1,6 @@
-# Next.js Juice Shop 🍹
+# Smart Juice Shop 🍹
 
 An intentionally insecure web application for security training, built with Next.js, React, and TypeScript.
-
-## Overview
-
-This is a modern recreation of the OWASP Juice Shop for educational purposes, built with Next.js 16+ App Router. It demonstrates common web security vulnerabilities in a controlled environment perfect for security training courses.
 
 ## 🎯 Purpose
 
@@ -23,14 +19,14 @@ This application is designed for:
 ### Prerequisites
 
 - Node.js 20+ 
-- npm or yarn
+- npm or pnpm
 
 ### Installation
 
 1. Clone the repository
 ```bash
-git clone <your-repo-url>
-cd nextjs-juice-shop
+git clone https://github.com/andreamagazzini/smart-juice-shop.git
+cd smart-juice-shop
 ```
 
 2. Install dependencies
@@ -43,143 +39,155 @@ pnpm install
 pnpm dev
 ```
 
-> **Note**: No database setup needed! The app uses browser-based storage.
+4. Open [http://localhost:3000](http://localhost:3000)
 
-5. Open [http://localhost:3000](http://localhost:3000)
+> **Note**: No database setup needed! The app uses browser-based storage (IndexedDB).
 
-## 🗄️ Database Setup
+## 🗄️ Storage
 
-**No database required!** This app uses browser-based storage (IndexedDB) for simplicity.
-
-### Session-Based Storage
-- **Each browser = Separate user session**
+This app uses **browser-based storage** (IndexedDB) for simplicity:
+- Each browser = Separate user session
 - Data lives in browser only
 - No interference between users
 - Perfect for educational purposes
 
 ### Manage Your Data
-Visit the Score Board page to:
+
+Visit the Challenges page (via the floating button) to:
 - **🔄 Reset**: Clear all progress and start fresh
 - **📥 Export**: Download your progress as JSON
 - **📤 Import**: Load previously exported progress
 
-Initial Credentials (for login challenges):
-- **Admin**: admin@juice-shop.com / admin123
+## 🔐 Default Credentials
 
-## 🎓 Available Challenges
+- **Admin**: `admin@juice-shop.com` / `admin123`
+- **IoT Default Credentials**: `admin` / `12345` (for disarming security alarm)
 
-### Broken Authentication (2 challenges)
-- **Login Admin**: Log in with the admin account
-- **Weak Password**: Exploit weak password policies
-
-### SQL Injection (2 challenges)
-- **SQL Injection Login**: Bypass authentication using SQL injection
-- **SQL Injection Search**: Extract data via SQL injection in search
-
-### XSS - Cross-Site Scripting (2 challenges)
-- **Reflected XSS**: Execute reflected XSS attacks
-- **Persisted XSS**: Store malicious scripts in feedback/comments
+## 🎓 Available Challenges (9 Total)
 
 ### Broken Access Control (2 challenges)
-- **Access Admin Section**: Access admin features without authorization
-- **Bypass Paywall**: Access premium features without paying
+- **Access Admin Section** [Difficulty: 1]: Access the administration section without authorization
+- **View Other Users' Data** [Difficulty: 2]: Access sensitive user data by entering database credentials
+
+### Cryptographic Failures (1 challenge)
+- **View Plaintext Passwords** [Difficulty: 2]: Find a password stored in plain text
+
+### Injection (2 challenges)
+- **Reveal VIP Products** [Difficulty: 2]: Use SQL injection to reveal hidden VIP products
+- **Stored XSS** [Difficulty: 2]: Inject malicious code into product data
+
+### Security Misconfiguration (1 challenge)
+- **Use Default Credentials** [Difficulty: 1]: Disarm alarm with default IoT credentials
+
+### Authentication Failures (2 challenges)
+- **Login Admin** [Difficulty: 1]: Log in with the admin account
+- **Session Hijacking** [Difficulty: 3]: Hijack another user's session token
 
 ### Improper Input Validation (1 challenge)
-- **Negative Order**: Place orders with negative values
+- **Manipulate Price** [Difficulty: 3]: Place an order with manipulated price
 
 ## 🏗️ Architecture
 
 ```
-nextjs-juice-shop/
+smart-juice-shop/
 ├── app/                          # Next.js App Router
-│   ├── api/                      # API Routes (vulnerable endpoints)
-│   │   ├── auth/
-│   │   │   └── login/route.ts    # SQL Injection vulnerability
-│   │   └── products/
-│   │       └── search/route.ts   # SQL Injection vulnerability
-│   ├── login/page.tsx            # Login page
-│   ├── score-board/page.tsx      # Challenge leaderboard
-│   └── page.tsx                  # Home page with search
+│   ├── api/                      # API Routes
+│   │   ├── auth/                 # Authentication endpoints
+│   │   ├── challenges/           # Challenge leaderboard
+│   │   └── users/                # User management
+│   ├── admin/                    # Admin panel (vulnerable!)
+│   ├── challenges/               # Challenges page
+│   ├── checkout/                 # Checkout page
+│   ├── iot-controls/             # IoT device controls
+│   ├── login/                    # Login page
+│   └── page.tsx                  # Home page
 ├── components/                   # React components
-│   ├── Navigation.tsx
-│   ├── SearchBar.tsx
-│   └── ChallengeNotification.tsx
+│   ├── ChallengesDrawer.tsx     # Floating challenges drawer
+│   ├── Navigation.tsx            # Navigation bar
+│   ├── SearchBar.tsx             # Product search
+│   ├── ProductGrid.tsx           # Product display
+│   ├── Toast.tsx                 # Toast notifications
+│   └── ...
 ├── lib/                          # Utility libraries
-│   ├── db.ts                     # Database connection
-│   ├── auth.ts                   # Authentication (vulnerable)
-│   ├── security.ts               # Security utilities (vulnerable)
-│   └── challenges.ts             # Challenge tracking
-└── prisma/
-    └── schema.prisma            # Database schema
+│   ├── browser-db.ts             # IndexedDB operations
+│   └── security.ts               # Security utilities
+└── prisma/                       # Database schema (not used in browser mode)
 ```
 
 ## 🔓 Implemented Vulnerabilities
 
 ### 1. SQL Injection
-**Location**: `app/api/auth/login/route.ts`, `app/api/products/search/route.ts`
+**Location**: `lib/browser-db.ts` - `searchProducts()` function
 
-**Vulnerability**: Direct string concatenation in SQL queries
+**Vulnerability**: String matching bypasses VIP product filtering
 ```typescript
-const results = await prisma.$queryRawUnsafe(
-  `SELECT * FROM User WHERE email = '${email}' AND password = '${password}'`
-)
+if (query.includes(' OR ') || query.includes("' OR") || query.includes('1=1')) {
+  return true // SQL injection - bypasses vipOnly filter!
+}
 ```
 
-**Exploits**:
-- Login bypass: `admin@juice-shop.herokuapp.com' OR '1'='1`
-- Data extraction: Union-based SQL injection in search
+**Exploit**: Search for `1=1` to reveal VIP products
 
-### 2. Broken Authentication
-**Location**: Password storage and JWT implementation
+### 2. Stored XSS (Cross-Site Scripting)
+**Location**: `app/admin/page.tsx` - Product editing
+
+**Vulnerability**: User input rendered with `dangerouslySetInnerHTML`
+```typescript
+<div dangerouslySetInnerHTML={{ __html: product.description }} />
+```
+
+**Exploit**: Edit a product description with `<img src=x onerror=alert(1)>`
+
+### 3. Broken Access Control
+**Location**: `app/admin/page.tsx`
 
 **Issues**:
-- Passwords stored in plain text (for demo purposes)
-- Weak JWT secret: `secret`
-- Missing 2FA validation
+- Admin panel accessible at `/admin` without proper authorization checks
+- Session token exposed in Users table
+- Database credentials displayed in Settings tab
 
-### 3. Cross-Site Scripting (XSS)
-**Location**: Search results rendering
+### 4. Session Hijacking
+**Location**: `app/api/users/tokens/route.ts` - Exposes all user tokens
 
-**Issue**: User input rendered without sanitization
+**Vulnerability**: Session tokens displayed in plain text
+**Exploit**: Copy another user's token to impersonate them
 
-### 4. Broken Access Control
-**Location**: JWT verification
+### 5. Plaintext Passwords
+**Location**: `app/admin/page.tsx` - Users tab
 
-**Issue**: Weak or missing authorization checks on admin endpoints
+**Vulnerability**: Passwords stored and displayed in plain text
+**Exploit**: View passwords in the admin Users table
 
-## 📊 Scoreboard System
+### 6. Default Credentials
+**Location**: `app/iot-controls/page.tsx` - Security alarm
 
-Students can track their progress on the scoreboard page:
-- View completed challenges
-- See leaderboard rankings
-- Track difficulty scores
+**Vulnerability**: Uses default IoT credentials (`admin` / `12345`)
+**Exploit**: Disarm alarm with default credentials
 
-## 🎓 For Instructors
+### 7. Price Manipulation
+**Location**: `app/checkout/page.tsx`
 
-### Setting Up the Course
+**Vulnerability**: Trusts client-side price data
+**Exploit**: Modify prices in localStorage and checkout
 
-1. **Deploy**: Host on Vercel, Netlify, or any Node.js host
-2. **Database**: Use SQLite for simplicity or upgrade to PostgreSQL for production
-3. **Students**: Have students register accounts (or provide test accounts)
-4. **Scoring**: Track progress via the scoreboard
+## 🎨 Features
 
-### Walkthroughs
-
-Create walkthrough documentation for each challenge:
-1. Challenge description
-2. Vulnerability location
-3. Step-by-step exploitation
-4. Remediation techniques
-5. OWASP Top 10 category reference
+- **Modern UI**: Beautiful gradient design with Tailwind CSS
+- **Floating Challenges Drawer**: Access challenges from anywhere
+- **Toast Notifications**: Get notified when completing challenges
+- **Admin Panel**: Manage users, products, and settings
+- **IoT Controls**: Simulated smart device controls
+- **Product Search**: Search with SQL injection vulnerability
+- **Progress Tracking**: Export/import your progress
 
 ## 🛠️ Development
 
 ### Adding New Challenges
 
-1. Add challenge definition to `lib/challenges.ts`
-2. Implement vulnerable endpoint in `app/api/`
-3. Add challenge verification logic
-4. Update leaderboard display
+1. Add challenge definition to `lib/browser-db.ts` in the `challenges` array
+2. Implement vulnerable code in the appropriate file
+3. Add challenge completion logic with `completeChallenge()` function
+4. Add hints to `components/ChallengesDrawer.tsx`
 
 ### Testing
 
@@ -191,39 +199,19 @@ pnpm lint
 pnpm exec tsc --noEmit
 ```
 
-## 📈 Roadmap
+## 📊 Challenge Tracking
 
-- [ ] Add more XSS challenges (stored, reflected, DOM-based)
-- [ ] Implement CSRF challenges
-- [ ] Add file upload vulnerabilities
-- [ ] Implement XXE challenges
-- [ ] Add deserialization vulnerabilities
-- [ ] Create vulnerable dependency challenges
-- [ ] Add cryptocurrency/Web3 challenges
-- [ ] Implement walkthrough tooltips
+Challenges are tracked globally (not per user) and stored in browser IndexedDB. Progress persists across page refreshes but resets when browser data is cleared.
 
 ## 🚀 Deployment
 
-### For Local Development (SQLite)
-The app is currently set up to use SQLite (file-based database) for local development.
+This app can be deployed to any static hosting platform that supports Next.js:
 
-### For Production Deployment (Vercel)
-Switch to PostgreSQL before deploying to Vercel. See deployment guides:
+- **Vercel** (recommended): `vercel deploy`
+- **Netlify**: Connect GitHub repository
+- **Other platforms**: Build with `pnpm build`
 
-- **[QUICK_DEPLOY.md](QUICK_DEPLOY.md)** - Fast deployment guide
-- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Detailed deployment instructions
-
-**Recommended database hosts:**
-- **Supabase** (Free PostgreSQL) - Best for courses
-- **Neon** (Serverless PostgreSQL)
-- **Vercel Postgres** (Integrated with Vercel)
-
-**Quick switch to PostgreSQL:**
-```bash
-# Edit prisma/schema.prisma: change "sqlite" to "postgresql"
-npx prisma generate
-npx prisma db push
-```
+**Note**: The app uses browser storage, so each user will have their own isolated data.
 
 ## 🤝 Contributing
 
@@ -241,7 +229,7 @@ MIT License - Use responsibly for educational purposes only.
 
 - Inspired by [OWASP Juice Shop](https://owasp.org/www-project-juice-shop/)
 - Built with [Next.js](https://nextjs.org/)
-- Database managed with [Prisma](https://www.prisma.io/)
+- Styled with [Tailwind CSS](https://tailwindcss.com/)
 
 ## ⚠️ Security Notice
 
