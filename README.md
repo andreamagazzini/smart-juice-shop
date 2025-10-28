@@ -108,10 +108,9 @@ smart-juice-shop/
 │   ├── ProductGrid.tsx           # Product display
 │   ├── Toast.tsx                 # Toast notifications
 │   └── ...
-├── lib/                          # Utility libraries
-│   ├── browser-db.ts             # IndexedDB operations
-│   └── security.ts               # Security utilities
-└── prisma/                       # Database schema (not used in browser mode)
+└── lib/                          # Utility libraries
+    ├── browser-db.ts             # IndexedDB operations
+    └── security.ts               # Security utilities
 ```
 
 ## 🔓 Implemented Vulnerabilities
